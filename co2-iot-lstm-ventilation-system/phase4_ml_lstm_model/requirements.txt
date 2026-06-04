@@ -1,0 +1,6 @@
+tensorflow
+tensorboard
+pandas
+numpy
+scikit-learn
+pytest
