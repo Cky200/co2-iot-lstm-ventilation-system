@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-
 from iot_firmware.sensor import MQ135Calibration, MQ135Sensor
 
 

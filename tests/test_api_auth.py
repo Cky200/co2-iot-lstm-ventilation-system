@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
+
 from src.api.main import app
-from src.api.dependencies import mock_users_db, get_password_hash
 
 client = TestClient(app)
 

@@ -1,5 +1,6 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
+
 from src.pipeline.db_client import InfluxDBWrapper
 from src.utils.logger import get_logger
 
@@ -16,7 +17,7 @@ class DataPreprocessor:
         if not raw_data:
             logger.warning("No data found for the given timeframe.")
             return pd.DataFrame()
-            
+
         df = pd.DataFrame(raw_data)
         df['time'] = pd.to_datetime(df['time'])
         df.set_index('time', inplace=True)
@@ -33,13 +34,13 @@ class DataPreprocessor:
         """
         if df.empty:
             return df
-            
+
         # Drop rows with NaN values in crucial columns
         df_cleaned = df.dropna(subset=['ppm']).copy()
-        
+
         # Apply moving average filter to ppm
         df_cleaned['ppm_smoothed'] = df_cleaned['ppm'].rolling(window=window_size, min_periods=1).mean()
-        
+
         return df_cleaned
 
     def create_lstm_sequences(self, df: pd.DataFrame, time_steps: int = 10, feature_col: str = 'ppm_smoothed'):
@@ -50,16 +51,16 @@ class DataPreprocessor:
         if df.empty or len(df) <= time_steps:
             logger.error("Not enough data to create sequences.")
             return np.array([]), np.array([])
-            
+
         data = df[feature_col].values
         X, y = [], []
-        
+
         for i in range(len(data) - time_steps):
             X.append(data[i:(i + time_steps)])
             y.append(data[i + time_steps])
-            
+
         # Reshape X to [samples, time_steps, features] expected by LSTM
         X_arr = np.array(X).reshape(-1, time_steps, 1)
         y_arr = np.array(y)
-        
+
         return X_arr, y_arr

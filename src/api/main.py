@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from src.api.routers import auth, co2, websocket
 from src.utils.logger import get_logger
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from dashboard_ui.store import DashboardStore
 from iot_firmware.sensor import MQ135Calibration, MQ135Sensor
@@ -49,7 +49,7 @@ def test_phase5_to_phase6_to_phase7_integration():
     point, alert = store.add_telemetry(
         __import__("dashboard_ui.models", fromlist=["TelemetryPoint"]).TelemetryPoint(
             device_id="integration-device",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             co2_ppm=reading["co2_ppm"],
             voltage=reading["voltage"],
             relay_state=command.relay_on,

@@ -128,7 +128,7 @@ class AsyncMQTTPublisher:
         self._client.disconnect()
         try:
             await asyncio.wait_for(self._disconnect_future, timeout=5)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self.logger.warning("Timed out waiting for MQTT disconnect acknowledgement")
         finally:
             self._client.loop_stop()

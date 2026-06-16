@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from ventilation_control.models import SensorReading
 from ventilation_control.safety import SafetyConfig, SafetyOverrideManager
 

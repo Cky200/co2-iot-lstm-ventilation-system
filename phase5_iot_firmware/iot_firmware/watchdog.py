@@ -10,7 +10,6 @@ import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-
 WatchdogCallback = Callable[[str, float], None | Awaitable[None]]
 
 

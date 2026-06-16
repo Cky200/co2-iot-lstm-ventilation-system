@@ -1,0 +1,89 @@
+name: Continuous Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Grant write access to package registry
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  build-and-publish:
+    name: Build & Publish to GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase Repository Name
+        id: prep
+        run: |
+          # GHCR tags require lowercase repository names
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "repo_lower=${REPO_LOWER}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: phase9_devops_cicd/docker/backend.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.prep.outputs.repo_lower }}/co2-backend:latest
+            ghcr.io/${{ steps.prep.outputs.repo_lower }}/co2-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Push Dashboard Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: phase9_devops_cicd/docker/dashboard.Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.prep.outputs.repo_lower }}/co2-dashboard:latest
+            ghcr.io/${{ steps.prep.outputs.repo_lower }}/co2-dashboard:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Production
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Lowercase Repository Name
+        id: prep
+        run: |
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "repo_lower=${REPO_LOWER}" >> $GITHUB_OUTPUT
+
+      - name: Simulate Production Deployment
+        run: |
+          echo "=========================================================="
+          echo "Starting production deployment sequence..."
+          echo "Deploying Backend Version: ${{ github.sha }}"
+          echo "Deploying Dashboard Version: ${{ github.sha }}"
+          echo "Images target: ghcr.io/${{ steps.prep.outputs.repo_lower }}/*"
+          echo "=========================================================="
+          echo "Simulation complete! To perform an automated live deploy:"
+          echo "1. Set up GITHUB Repository Secrets for SSH key and hosts."
+          echo "2. Add a step using appleboy/ssh-action to SSH into the host."
+          echo "3. Run: docker compose -f phase9_devops_cicd/docker/docker-compose.prod.yml pull"
+          echo "4. Run: docker compose -f phase9_devops_cicd/docker/docker-compose.prod.yml up -d"
+          echo "=========================================================="

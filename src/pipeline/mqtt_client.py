@@ -1,5 +1,7 @@
 import json
+
 import paho.mqtt.client as mqtt
+
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -9,18 +11,18 @@ class MQTTClientWrapper:
         self.broker_address = broker_address
         self.port = port
         self.client_id = client_id
-        
+
         # paho-mqtt 2.0+ requires CallbackAPIVersion.VERSION2, but we use >=1.6.1 in requirements
         # which might be 1.6.x or 2.0+. We'll just use the default constructor for compatibility
         # if using < 2.0, or try/except for 2.0+.
         try:
             self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id)
         except AttributeError:
-            self.client = mqtt.Client(client_id)
-            
+            self.client = mqtt.Client(client_id=client_id)
+
         self.client.on_connect = self._on_connect
         self.client.on_disconnect = self._on_disconnect
-        
+
     def _on_connect(self, client, userdata, flags, rc, *args):
         # rc might be reason_code in v2, but it coerces to int
         if int(rc) == 0:
@@ -61,7 +63,7 @@ class MQTTClientWrapper:
                 logger.error(f"Failed to decode JSON payload: {msg.payload}")
             except Exception as e:
                 logger.error(f"Error in message callback: {e}")
-                
+
         self.client.on_message = on_message
         self.client.subscribe(topic)
         logger.info(f"Subscribed to topic: {topic}")

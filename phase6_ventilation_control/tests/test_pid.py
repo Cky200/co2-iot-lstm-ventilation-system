@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from ventilation_control.pid import PIDConfig, PIDController
 
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -17,7 +17,7 @@ class TelemetryPoint:
     fan_speed_percent: float | None = None
 
     @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> "TelemetryPoint":
+    def from_payload(cls, payload: dict[str, Any]) -> TelemetryPoint:
         ppm = payload.get("co2_ppm", payload.get("ppm"))
         if ppm is None:
             raise ValueError("Telemetry payload requires co2_ppm or ppm")
@@ -48,7 +48,7 @@ class VentilationStatus:
     reason: str = "waiting_for_data"
 
     @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> "VentilationStatus":
+    def from_payload(cls, payload: dict[str, Any]) -> VentilationStatus:
         fan_speed = payload.get("fan_speed_percent")
         if fan_speed is None:
             fan_speed = 100.0 if payload.get("relay_state", payload.get("relay_on", False)) else 0.0
@@ -81,15 +81,15 @@ class Alert:
 
 def _parse_timestamp(value: Any) -> datetime:
     if value is None:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
     if isinstance(value, datetime):
-        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
     if isinstance(value, (int, float)):
-        return datetime.fromtimestamp(value, tz=timezone.utc)
+        return datetime.fromtimestamp(value, tz=UTC)
     if isinstance(value, str):
         normalized = value.replace("Z", "+00:00")
         parsed = datetime.fromisoformat(normalized)
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
     raise ValueError(f"Unsupported timestamp value: {value!r}")
 
 

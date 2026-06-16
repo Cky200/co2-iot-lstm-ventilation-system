@@ -1,0 +1,33 @@
+# Ruff configuration for Hybrid IoT-LSTM Ventilation Control system
+line-length = 120
+target-version = "py311"
+
+[lint]
+# Enable Pyflakes (F), pycodestyle (E, W), isort (I), and pyupgrade (UP)
+select = ["F", "E", "W", "I", "UP"]
+ignore = ["E501", "UP042"]
+
+# Allow autofix for all enabled rules (when using --fix)
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude common directories
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    ".pytest_cache",
+    "build",
+    "dist"
+]
+
+[lint.per-file-ignores]
+"**/tests/*" = ["E402"]
+"**/tests/**" = ["E402"]
+
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

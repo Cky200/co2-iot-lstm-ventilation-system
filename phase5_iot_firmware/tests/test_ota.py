@@ -5,7 +5,6 @@ import hashlib
 import tarfile
 
 import pytest
-
 from iot_firmware.ota import OTAManifest, OTAUpdater
 
 

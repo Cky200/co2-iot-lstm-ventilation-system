@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from dashboard_ui.models import TelemetryPoint
 from dashboard_ui.store import DashboardStore
@@ -13,7 +13,7 @@ def test_dashboard_store_handles_high_volume_ingestion_quickly():
         store.add_telemetry(
             TelemetryPoint(
                 device_id=f"load-device-{index % 4}",
-                timestamp=datetime(2026, 6, 16, tzinfo=timezone.utc),
+                timestamp=datetime(2026, 6, 16, tzinfo=UTC),
                 co2_ppm=700 + (index % 900),
                 voltage=1.5,
                 relay_state=index % 2 == 0,

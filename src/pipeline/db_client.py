@@ -1,6 +1,8 @@
 import os
+
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
+
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -11,7 +13,7 @@ class InfluxDBWrapper:
         self.token = os.getenv("INFLUXDB_TOKEN", "super-secret-auth-token")
         self.org = os.getenv("INFLUXDB_ORG", "co2-org")
         self.bucket = os.getenv("INFLUXDB_BUCKET", "co2-data")
-        
+
         try:
             self.client = InfluxDBClient(url=self.url, token=self.token, org=self.org)
             self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
@@ -60,7 +62,7 @@ class InfluxDBWrapper:
                     })
         except Exception as e:
             logger.error(f"Error querying InfluxDB: {e}")
-            
+
         return results
 
     def close(self):

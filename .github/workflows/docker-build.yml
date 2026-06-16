@@ -1,0 +1,42 @@
+name: Docker Build Verification
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'phase9_devops_cicd/docker/**'
+      - 'src/**'
+      - 'phase7_dashboard_ui/**'
+      - 'requirements.txt'
+      - '.github/workflows/docker-build.yml'
+
+jobs:
+  verify-docker-build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend & Ingestion Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: phase9_devops_cicd/docker/backend.Dockerfile
+          push: false
+          tags: co2-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Dashboard Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: phase9_devops_cicd/docker/dashboard.Dockerfile
+          push: false
+          tags: co2-dashboard:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

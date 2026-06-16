@@ -1,7 +1,9 @@
-from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.optimizers import Adam
+
 from . import config
+
 
 def build_lstm_model(input_shape=(config.SEQUENCE_LENGTH, config.FEATURES), learning_rate=config.LEARNING_RATE):
     """
@@ -16,8 +18,8 @@ def build_lstm_model(input_shape=(config.SEQUENCE_LENGTH, config.FEATURES), lear
         Dense(16, activation='relu'),
         Dense(1, activation='linear')
     ])
-    
+
     optimizer = Adam(learning_rate=learning_rate)
     model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['mae'])
-    
+
     return model

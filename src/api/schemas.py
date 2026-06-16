@@ -1,19 +1,20 @@
-from pydantic import BaseModel
-from typing import Optional, List
 from datetime import datetime
+
+from pydantic import BaseModel
+
 
 class Token(BaseModel):
     access_token: str
     token_type: str
 
 class TokenData(BaseModel):
-    username: Optional[str] = None
+    username: str | None = None
 
 class User(BaseModel):
     username: str
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    disabled: Optional[bool] = None
+    email: str | None = None
+    full_name: str | None = None
+    disabled: bool | None = None
 
 class UserInDB(User):
     hashed_password: str
@@ -25,4 +26,4 @@ class CO2DataPoint(BaseModel):
     relay_state: bool
 
 class CO2HistoryResponse(BaseModel):
-    data: List[CO2DataPoint]
+    data: list[CO2DataPoint]

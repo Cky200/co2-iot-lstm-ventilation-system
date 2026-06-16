@@ -1,6 +1,9 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
+
 from src.hardware.actuator import VentilationController
+
 
 @pytest.fixture
 def mock_ventilation():
@@ -8,7 +11,7 @@ def mock_ventilation():
         # Mock instance returned by OutputDevice
         mock_relay = MagicMock()
         mock_output_device.return_value = mock_relay
-        
+
         controller = VentilationController(pin=17)
         yield controller, mock_relay
 
@@ -27,7 +30,7 @@ def test_turn_off(mock_ventilation):
     # First turn on
     controller.turn_on()
     mock_relay.on.assert_called_once()
-    
+
     # Then turn off
     controller.turn_off()
     assert controller.is_on is False

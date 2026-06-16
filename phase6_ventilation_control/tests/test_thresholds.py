@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from ventilation_control.models import AirQualityState
 from ventilation_control.thresholds import ThresholdConfig, ThresholdManager
 

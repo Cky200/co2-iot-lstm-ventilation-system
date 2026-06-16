@@ -1,11 +1,12 @@
 import os
 from datetime import datetime, timedelta
-from typing import Optional
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from src.api.schemas import TokenData, UserInDB, User
+
+from src.api.schemas import TokenData, User, UserInDB
 from src.pipeline.db_client import InfluxDBWrapper
 
 SECRET_KEY = os.getenv("SECRET_KEY", "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7")
@@ -37,7 +38,7 @@ def get_user(db, username: str):
         user_dict = db[username]
         return UserInDB(**user_dict)
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -61,7 +62,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = get_user(mock_users_db, username=token_data.username)
+    user = get_user(mock_users_db, username=username)
     if user is None:
         raise credentials_exception
     return user

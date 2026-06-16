@@ -30,7 +30,7 @@ class OTAManifest:
     install_command: list[str] | None = None
 
     @classmethod
-    def from_json(cls, payload: str | dict[str, Any]) -> "OTAManifest":
+    def from_json(cls, payload: str | dict[str, Any]) -> OTAManifest:
         data = json.loads(payload) if isinstance(payload, str) else payload
         return cls(
             version=str(data["version"]),

@@ -1,0 +1,128 @@
+version: '3.8'
+
+networks:
+  co2-network:
+    driver: bridge
+
+services:
+  # MQTT Broker
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: co2-mqtt-broker-prod
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ../../mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - co2-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 5 mosquitto_sub -t '$$sys/broker/version' -C 1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Time-Series Database
+  influxdb:
+    image: influxdb:2.7
+    container_name: co2-influxdb-prod
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=adminpassword
+      - DOCKER_INFLUXDB_INIT_ORG=co2-org
+      - DOCKER_INFLUXDB_INIT_BUCKET=co2-data
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=super-secret-auth-token
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    networks:
+      - co2-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend API
+  co2-backend:
+    build:
+      context: ../..
+      dockerfile: phase9_devops_cicd/docker/backend.Dockerfile
+    container_name: co2-backend-api-prod
+    ports:
+      - "8000:8000"
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=super-secret-auth-token
+      - INFLUXDB_ORG=co2-org
+      - INFLUXDB_BUCKET=co2-data
+      - SECRET_KEY=production-secret-key-change-in-prod-environments-123456
+    networks:
+      - co2-network
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Ingestion Service Daemon
+  co2-ingestion:
+    build:
+      context: ../..
+      dockerfile: phase9_devops_cicd/docker/backend.Dockerfile
+    container_name: co2-ingestion-service-prod
+    command: ["python", "-m", "src.pipeline.ingestion"]
+    environment:
+      - MQTT_BROKER=mosquitto
+      - MQTT_TOPIC=iot/co2/sensor1
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=super-secret-auth-token
+      - INFLUXDB_ORG=co2-org
+      - INFLUXDB_BUCKET=co2-data
+    networks:
+      - co2-network
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Flask Web Dashboard
+  co2-dashboard:
+    build:
+      context: ../..
+      dockerfile: phase9_devops_cicd/docker/dashboard.Dockerfile
+    container_name: co2-dashboard-ui-prod
+    ports:
+      - "5007:5007"
+    environment:
+      - DASHBOARD_HOST=0.0.0.0
+      - DASHBOARD_PORT=5007
+      - DASHBOARD_SECRET_KEY=production-dashboard-secret-key
+      - DASHBOARD_CORS_ORIGINS=*
+    networks:
+      - co2-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5007/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  influxdb_data:
+  influxdb_config:

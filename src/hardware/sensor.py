@@ -1,8 +1,9 @@
+import adafruit_mcp3xxx.mcp3008 as MCP
 import board
 import busio
 import digitalio
-import adafruit_mcp3xxx.mcp3008 as MCP
 from adafruit_mcp3xxx.analog_in import AnalogIn
+
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -33,7 +34,7 @@ class MQ135Sensor:
             # CircuitPython mcp3xxx library maps 10-bit to 16-bit (0-65535)
             # We can use chan.value for 16-bit or map it back if needed.
             # Voltage can be read directly via chan.voltage
-            return self.chan.value
+            return int(self.chan.value)
         except Exception as e:
             logger.error(f"Error reading raw value from MQ135: {e}")
             return -1
@@ -41,7 +42,7 @@ class MQ135Sensor:
     def read_voltage(self) -> float:
         """Reads the voltage value."""
         try:
-            return self.chan.voltage
+            return float(self.chan.voltage)
         except Exception as e:
             logger.error(f"Error reading voltage from MQ135: {e}")
             return -1.0
@@ -55,7 +56,7 @@ class MQ135Sensor:
         voltage = self.read_voltage()
         if voltage < 0:
             return -1.0
-        
+
         # Placeholder for actual R0 calibration and PPM calculation formula.
         # Assuming a linear approximation for demonstration.
         # In a real scenario, use Ro, Rs, and the sensor datasheet curve.

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from dashboard_ui.alerts import AlertManager, AlertThresholds
 from dashboard_ui.models import TelemetryPoint
@@ -16,7 +16,7 @@ def test_store_keeps_bounded_history_and_alerts():
 
     for ppm in (800, 950, 1300):
         store.add_telemetry(
-            TelemetryPoint(device_id="sensor", timestamp=datetime(2026, 6, 16, tzinfo=timezone.utc), co2_ppm=ppm)
+            TelemetryPoint(device_id="sensor", timestamp=datetime(2026, 6, 16, tzinfo=UTC), co2_ppm=ppm)
         )
 
     snapshot = store.snapshot()

@@ -23,10 +23,10 @@ class MCP3008Reader:
 
     def __init__(self) -> None:
         try:
+            import adafruit_mcp3xxx.mcp3008 as MCP
             import board
             import busio
             import digitalio
-            import adafruit_mcp3xxx.mcp3008 as MCP
             from adafruit_mcp3xxx.analog_in import AnalogIn
         except ImportError as exc:  # pragma: no cover - depends on Raspberry Pi libs
             raise RuntimeError(
@@ -55,7 +55,7 @@ class MQ135Calibration:
     clean_air_factor: float = 3.6
 
     @classmethod
-    def load(cls, path: Path) -> "MQ135Calibration":
+    def load(cls, path: Path) -> MQ135Calibration:
         data = json.loads(path.read_text(encoding="utf-8"))
         return cls(**data)
 
@@ -113,7 +113,7 @@ class MQ135Sensor:
             raise RuntimeError("MQ-135 calibration is required before reading CO2 PPM")
         rs_ro_ratio = self.sensor_resistance_kohm(voltage) / self.calibration.ro_kohm
         ppm = self.CO2_CURVE_A * (rs_ro_ratio ** self.CO2_CURVE_B)
-        return round(max(ppm, 0.0), 2)
+        return float(round(max(ppm, 0.0), 2))
 
     async def sample(self, *, sample_count: int = 8, sample_delay_seconds: float = 0.05) -> dict[str, float]:
         voltages: list[float] = []
