@@ -1,0 +1,26 @@
+[run]
+branch = True
+source =
+    ../src
+    ../phase5_iot_firmware/iot_firmware
+    ../phase6_ventilation_control/ventilation_control
+    ../phase7_dashboard_ui/dashboard_ui
+omit =
+    */tests/*
+    */__pycache__/*
+    */.venv/*
+
+[report]
+show_missing = True
+skip_empty = True
+precision = 2
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    raise NotImplementedError
+
+[html]
+directory = reports/htmlcov
+
+[xml]
+output = reports/coverage.xml

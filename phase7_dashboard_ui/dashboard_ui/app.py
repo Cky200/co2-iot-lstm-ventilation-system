@@ -35,6 +35,10 @@ def create_app(config: DashboardConfig | None = None, store: DashboardStore | No
 
     socketio.init_app(app, cors_allowed_origins=dashboard_config.cors_allowed_origins)
 
+    @app.errorhandler(ValueError)
+    def handle_bad_request(error):
+        return jsonify({"error": str(error)}), 400
+
     @app.get("/")
     def index():
         return render_template("dashboard.html")
