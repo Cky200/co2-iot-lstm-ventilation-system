@@ -1,0 +1,168 @@
+version: '3.8'
+
+networks:
+  co2-net:
+    driver: bridge
+
+services:
+  # Nginx Gateway (SSL/TLS Termination & Routing Proxy)
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: co2-nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - co2-net
+    depends_on:
+      - co2-backend
+      - co2-dashboard
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Certbot (Let's Encrypt SSL/TLS Certificate Manager)
+  certbot:
+    image: certbot/certbot:v2.9.0
+    container_name: co2-certbot
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    networks:
+      - co2-net
+    # Check for renewal every 12 hours (renewal will skip if expiration is >30 days)
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done'"
+
+  # MQTT Broker (Exposes 1883 for physical IoT sensor publishing)
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: co2-mqtt-broker-prod
+    ports:
+      - "1883:1883"
+    volumes:
+      - ../mosquitto/config:/mosquitto/config:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - co2-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 5 mosquitto_sub -t '$$sys/broker/version' -C 1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Time-Series Database (Internal port 8086 unexposed to host for security)
+  influxdb:
+    image: influxdb:2.7
+    container_name: co2-influxdb-prod
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=${DOCKER_INFLUXDB_INIT_MODE:-setup}
+      - DOCKER_INFLUXDB_INIT_USERNAME=${DOCKER_INFLUXDB_INIT_USERNAME}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${DOCKER_INFLUXDB_INIT_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=${DOCKER_INFLUXDB_INIT_ORG}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${DOCKER_INFLUXDB_INIT_BUCKET}
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    networks:
+      - co2-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend API Service (Internal port 8000 unexposed)
+  co2-backend:
+    image: ${DOCKER_REGISTRY:-ghcr.io/cky200/co2-iot-lstm-ventilation-system}/co2-backend:${IMAGE_TAG:-latest}
+    # Fallback to build locally if the image is not found in registry
+    build:
+      context: ..
+      dockerfile: phase9_devops_cicd/docker/backend.Dockerfile
+    container_name: co2-backend-api-prod
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
+      - INFLUXDB_ORG=${INFLUXDB_ORG}
+      - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
+      - SECRET_KEY=${SECRET_KEY}
+    networks:
+      - co2-net
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Ingestion Service Daemon (Consumes MQTT, Writes to InfluxDB)
+  co2-ingestion:
+    image: ${DOCKER_REGISTRY:-ghcr.io/cky200/co2-iot-lstm-ventilation-system}/co2-backend:${IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: phase9_devops_cicd/docker/backend.Dockerfile
+    container_name: co2-ingestion-service-prod
+    command: ["python", "-m", "src.pipeline.ingestion"]
+    environment:
+      - MQTT_BROKER=mosquitto
+      - MQTT_TOPIC=${MQTT_TOPIC:-iot/co2/sensor1}
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
+      - INFLUXDB_ORG=${INFLUXDB_ORG}
+      - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
+    networks:
+      - co2-net
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Flask Web Dashboard UI (Internal port 5007 unexposed)
+  co2-dashboard:
+    image: ${DOCKER_REGISTRY:-ghcr.io/cky200/co2-iot-lstm-ventilation-system}/co2-dashboard:${IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: phase9_devops_cicd/docker/dashboard.Dockerfile
+    container_name: co2-dashboard-ui-prod
+    environment:
+      - DASHBOARD_HOST=0.0.0.0
+      - DASHBOARD_PORT=5007
+      - DASHBOARD_SECRET_KEY=${DASHBOARD_SECRET_KEY}
+      - DASHBOARD_CORS_ORIGINS=${DASHBOARD_CORS_ORIGINS:-*}
+      - DASHBOARD_HISTORY_LIMIT=${DASHBOARD_HISTORY_LIMIT:-300}
+      - DASHBOARD_ELEVATED_PPM=${DASHBOARD_ELEVATED_PPM:-900}
+      - DASHBOARD_HIGH_PPM=${DASHBOARD_HIGH_PPM:-1200}
+      - DASHBOARD_CRITICAL_PPM=${DASHBOARD_CRITICAL_PPM:-1800}
+    networks:
+      - co2-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5007/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  influxdb_data:
+  influxdb_config:
+  certbot_certs:
+  certbot_www:
+  nginx_logs:
