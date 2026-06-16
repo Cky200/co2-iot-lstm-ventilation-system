@@ -1,0 +1,77 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: co2-dashboard
+  namespace: co2-system
+  labels:
+    app.kubernetes.io/name: co2-dashboard
+    app.kubernetes.io/component: ui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: co2-dashboard
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: co2-dashboard
+    spec:
+      containers:
+        - name: co2-dashboard
+          image: ghcr.io/cky200/co2-iot-lstm-ventilation-system/co2-dashboard:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5007
+              name: http
+          envFrom:
+            - configMapRef:
+                name: co2-system-config
+          env:
+            - name: DASHBOARD_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: co2-system-secrets
+                  key: DASHBOARD_SECRET_KEY
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5007
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5007
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: co2-dashboard-svc
+  namespace: co2-system
+  labels:
+    app.kubernetes.io/name: co2-dashboard
+    app.kubernetes.io/component: ui
+spec:
+  selector:
+    app: co2-dashboard
+  ports:
+    - name: http
+      port: 5007
+      targetPort: 5007
+  type: ClusterIP

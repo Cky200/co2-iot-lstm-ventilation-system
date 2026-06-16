@@ -1,0 +1,65 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: co2-ingestion
+  namespace: co2-system
+  labels:
+    app.kubernetes.io/name: co2-ingestion
+    app.kubernetes.io/component: ingestion
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: co2-ingestion
+  strategy:
+    type: Recreate             # Singleton daemon — avoid duplicate MQTT consumers
+  template:
+    metadata:
+      labels:
+        app: co2-ingestion
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: co2-ingestion
+          image: ghcr.io/cky200/co2-iot-lstm-ventilation-system/co2-backend:latest
+          imagePullPolicy: Always
+          command: ["python", "-m", "src.pipeline.ingestion"]
+          env:
+            - name: MQTT_BROKER
+              valueFrom:
+                configMapKeyRef:
+                  name: co2-system-config
+                  key: MQTT_BROKER
+            - name: MQTT_TOPIC
+              valueFrom:
+                configMapKeyRef:
+                  name: co2-system-config
+                  key: MQTT_TOPIC
+            - name: INFLUXDB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: co2-system-config
+                  key: INFLUXDB_URL
+            - name: INFLUXDB_ORG
+              valueFrom:
+                configMapKeyRef:
+                  name: co2-system-config
+                  key: INFLUXDB_ORG
+            - name: INFLUXDB_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: co2-system-config
+                  key: INFLUXDB_BUCKET
+            - name: INFLUXDB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: co2-system-secrets
+                  key: INFLUXDB_TOKEN
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
