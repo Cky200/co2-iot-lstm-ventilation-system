@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CO2 Ventilation Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Real-time CO2 Monitoring</p>
+          <h1>Ventilation Dashboard</h1>
+        </div>
+        <div class="connection" id="connectionStatus">Connecting</div>
+      </header>
+
+      <section class="metrics" aria-label="Current system metrics">
+        <article class="metric primary">
+          <span class="label">CO2</span>
+          <strong id="co2Value">--</strong>
+          <span class="unit">ppm</span>
+        </article>
+        <article class="metric">
+          <span class="label">Ventilation</span>
+          <strong id="relayState">--</strong>
+          <span class="unit" id="fanSpeed">0%</span>
+        </article>
+        <article class="metric">
+          <span class="label">Voltage</span>
+          <strong id="voltageValue">--</strong>
+          <span class="unit">V</span>
+        </article>
+        <article class="metric">
+          <span class="label">Device</span>
+          <strong id="deviceId">--</strong>
+          <span class="unit" id="lastSeen">Waiting</span>
+        </article>
+      </section>
+
+      <section class="workspace">
+        <div class="chart-panel">
+          <div class="panel-head">
+            <h2>Live CO2 Trend</h2>
+            <span id="qualityBadge" class="badge normal">Normal</span>
+          </div>
+          <canvas id="co2Chart" aria-label="Live CO2 ppm chart"></canvas>
+        </div>
+
+        <aside class="side-panel">
+          <section class="status-panel">
+            <h2>Ventilation Status</h2>
+            <dl>
+              <div>
+                <dt>Mode</dt>
+                <dd id="ventMode">auto</dd>
+              </div>
+              <div>
+                <dt>Reason</dt>
+                <dd id="ventReason">waiting_for_data</dd>
+              </div>
+              <div>
+                <dt>Relay</dt>
+                <dd id="ventRelay">off</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="alerts-panel">
+            <div class="panel-head compact">
+              <h2>Alerts</h2>
+              <span id="alertCount">0</span>
+            </div>
+            <ul id="alertList" class="alerts-list"></ul>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  </body>
+</html>
