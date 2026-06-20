@@ -1,0 +1,29 @@
+groups:
+  - name: co2_alerts
+    rules:
+      - alert: HighCO2Level
+        expr: co2_level_ppm > 1200
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated CO2 levels detected"
+          description: "CO2 levels on device {{ $labels.device_id }} are {{ $value }} ppm, exceeding the warning threshold of 1200 ppm."
+
+      - alert: CriticalCO2Level
+        expr: co2_level_ppm > 1800
+        for: 0s
+        labels:
+          severity: critical
+        annotations:
+          summary: "CRITICAL CO2 levels detected"
+          description: "CO2 levels on device {{ $labels.device_id }} are {{ $value }} ppm, exceeding the hazard threshold of 1800 ppm. Ventilation override must be triggered."
+
+      - alert: SensorOffline
+        expr: rate(co2_readings_total[5m]) == 0 or absent(co2_level_ppm)
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CO2 sensor device appears offline"
+          description: "No sensor readings have been received in the last 5 minutes."

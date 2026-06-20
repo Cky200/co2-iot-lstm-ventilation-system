@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "alertmanager:9093"
+
+rule_files:
+  - "/etc/prometheus/alert.rules.yml"
+
+scrape_configs:
+  - job_name: "co2-backend"
+    static_configs:
+      - targets: ["co2-backend:8000"]
+
+  - job_name: "co2-ingestion"
+    static_configs:
+      - targets: ["co2-ingestion:8001"]
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
